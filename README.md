@@ -26,6 +26,7 @@ python calculate_the_items.py (資料夾位置) (匯出位置)
 
 ### 分析結果
 包含每幀標註多少人物+位置
+
 ![](https://i.imgur.com/0asWjjf.png)
 
 
