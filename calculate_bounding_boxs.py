@@ -29,10 +29,11 @@ if __name__ == '__main__':
         # 讀取JSON文件內容
         data = read_json_file(sys.argv[1] + file)
         # 各個JSON文件標註多少
-        key = data['name']
-        calculates[key] = data['total_labels']
-        # 將所有JSON文件標註的total加總
-        total = total + data['total_labels']
+        if 'name' in data:
+            key = data['name']
+            calculates[key] = data['total_labels']
+            # 將所有JSON文件標註的total加總
+            total = total + data['total_labels']
     calculates['total_labels'] = total
     export_json_file(sys.argv[2], 'VoTT_Label_Result.json', calculates)
         
