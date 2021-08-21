@@ -4,8 +4,8 @@ import json
 import re
 
 #此工具為分析VoTT 匯出的JSON檔案 每幀標註多少人物+位置
-# 使用方式: python calculate_the_items.py (資料夾位置)
-#      EX： python calculate_the_items.py E:\\VoTT_JSON\\
+# 使用方式: python calculate_the_items.py (資料夾位置) (匯出位置)
+#      EX： python calculate_the_items.py E:\\VoTT_JSON\\  E:\\Auto_Calculate
 
 # 建立存放匯出文件的資料夾
 def createFolder(path):
@@ -32,7 +32,7 @@ def check_folder(folders):
 if __name__ == '__main__':
     folderPath =  sys.argv[1]
     # 建立JSON檔存放位置
-    exportPath = './Auto_Calculate'
+    exportPath = sys.argv[2]
     createFolder(exportPath)
 
     folders = os.listdir(folderPath)
