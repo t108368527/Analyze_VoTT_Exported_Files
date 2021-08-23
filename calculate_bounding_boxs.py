@@ -17,6 +17,7 @@ def export_json_file(path, fileName, data):
     with open(path + fileName, 'w') as obj:
         # 輸出成JSON並格式化
         json.dump(data, obj, indent=4, separators=(',', ':'))
+        print('Done!')
 
 if __name__ == '__main__':
     # export data
