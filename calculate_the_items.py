@@ -40,8 +40,8 @@ if __name__ == '__main__':
     for folder in is_folders:
         # JSON檔資料 dict
         calculates = {}
-        calculates['regions']={}
-        calculates_item = [];
+        calculates['regions']=[]
+        
         # 總共label多少
         totalLabels = 0;
         # 先建立產出JSON檔的name
@@ -66,20 +66,25 @@ if __name__ == '__main__':
                     for key in reversed(keys):
                         bbox=[]
                         b = []
+                        calculates_item = {}
                         # re.sub刪除 '.mp4'
                         index = re.sub(".mp4","",str(data['assets'][key]['asset']['name']))
-                        calculates['regions'][index] = {}
+                        calculates_item['name'] = index
                         # 這個frame總共標記多少個人物
                         totalLabels = totalLabels + len(data['assets'][key]['regions'])
-                        calculates['regions'][index]['count'] = len(data['assets'][key]['regions'])
+                        calculates_item['count'] = len(data['assets'][key]['regions'])
+                        calculates_item['timestamp'] = data['assets'][key]['asset']['timestamp']
                         # bbox
                         if data['assets'][key]['regions'] :
                             for i in range(len(data['assets'][key]['regions'])):
                                 b.append([ int(data['assets'][key]['regions'][i]['points'][0]['y']),int(data['assets'][key]['regions'][i]['points'][0]['x']),int(data['assets'][key]['regions'][i]['points'][2]['y']),int(data['assets'][key]['regions'][i]['points'][2]['x'])])
-                            calculates['regions'][index]['boundingBox'] = b
+                            calculates_item['boundingBox'] = b
+                            calculates['regions'].append(calculates_item)
                         else:
-                            calculates['regions'][index]['boundingBox']=[]
+                            calculates_item['boundingBox']=[]
+                            calculates['regions'].append(calculates_item)
 
+                    
                     calculates['total_labels'] = totalLabels
                     # JSON檔名
                     file = exportPath + '/' + folder + '_auto_calculate_the_items.json'
