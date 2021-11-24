@@ -36,6 +36,8 @@ def draw_bar(xData, y1Data, y2Data):
     # ax = plt.axes()
     # for i, j in zip(y1, y2):
     #     ax.text(j+1, i-0.5, "{}".format(j))
+    #FIXME: 修改名稱
+    plt.savefig('Model_result.jpg')
     plt.show()
 
 if __name__ == '__main__':
@@ -74,8 +76,8 @@ if __name__ == '__main__':
     calculates['Recall_Final'] = recall / len(files)
     print(precision / len(files))
     print(recall / len(files))
-    # JSON檔名
-    file = exportPath + '/' + 'precision_recall_auto_calculate.json'
+    # FIXME: JSON檔名 
+    file = exportPath + '/' + 'Model_precision_recall_auto_calculate.json'
     with open(file, 'w') as obj:
         # 輸出成JSON並格式化
         json.dump(calculates, obj, indent=4, separators=(',', ':'))

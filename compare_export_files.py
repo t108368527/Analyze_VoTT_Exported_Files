@@ -2,28 +2,32 @@ import os as os
 import sys as sys
 import json 
 import cv2
+import math
 
 # def loadFile(path):
 def drawBbox(picName, folderName,vottBbox):
     # vottBbox = 陣列
-    path = '.\\' + folderName + '_compare_img'
+    # FIXME:若替換Model 需修改
+    path = 'C:\\Model_Output_Image\\' + folderName + '_compare_img'
     folder = os.path.exists(path)
-    print('E:\\Mask_RCNN\\samples\\'+folderName+'_img\\'+ picName)
-    img = cv2.imread('E:\\Mask_RCNN\\samples\\'+folderName+'_img\\'+ picName +'.jpg')
-    for v in vottBbox:
-        # bbox
-        cv2.rectangle(img, (v[1], v[0]), (v[3], v[2]), (0, 0, 255), 3)
-        # VoTT
-        cv2.putText(img, 'VoTT', (v[1]-15, v[2]+29), cv2.FONT_HERSHEY_COMPLEX_SMALL,2, (0, 0, 255),2 )
-    if not folder:
-        #如果不存在，則建立新目錄
-        os.makedirs(path)
-        print('-----建立成功-----')
-        cv2.imwrite(os.path.join(path , picName +'_compare.jpg'), img)
+    #FIXME: 照片輸出位置 若改別Model 這邊要改
+    print('C:\\Model_Output_Image\\'+folderName+'\\'+ picName)
+    img = cv2.imread('F:\\Model_Output_Image\\'+folderName+'\\'+ picName +'.jpg')
+    if img is not None:
+        for v in vottBbox:
+            # bbox
+            cv2.rectangle(img, (v[1], v[0]), (v[3], v[2]), (0, 0, 255), 3)
+            # VoTT
+            cv2.putText(img, 'VoTT', (v[1]-15, v[2]+29), cv2.FONT_HERSHEY_COMPLEX_SMALL,2, (0, 0, 255),2 )
+        if not folder:
+            #如果不存在，則建立新目錄
+            os.makedirs(path)
+            print('-----建立成功-----')
+            cv2.imwrite(os.path.join(path , picName +'_compare.jpg'), img)
 
-    else:
-        #如果目錄已存在，則不建立
-        cv2.imwrite(os.path.join(path , picName +'_compare.jpg'), img)
+        else:
+            #如果目錄已存在，則不建立
+            cv2.imwrite(os.path.join(path , picName +'_compare.jpg'), img)
     
 def getLast(vottJson,maskRcnnJson):
     vottLastSecond  = 0
@@ -57,6 +61,63 @@ def calculateIoU(VoTT_bbox, MR_bbox):
     iou = interArea / float(VoTTArea + MRArea - interArea)
 
     return iou
+
+def calculateCIoU(VoTT_bbox, Compare_bbox):
+    # calculate area of each box
+    width_1 = VoTT_bbox[3] - VoTT_bbox[1]
+    height_1 = VoTT_bbox[2] - VoTT_bbox[0]
+    area_1 = width_1 * height_1
+
+    width_2 = Compare_bbox[3] - Compare_bbox[1]
+    height_2 = Compare_bbox[2] - Compare_bbox[0]
+    area_2 = width_2 * height_2
+
+    # calculate center point of each box
+    center_x1 = (VoTT_bbox[3] - VoTT_bbox[1]) / 2
+    center_y1 = (VoTT_bbox[2] - VoTT_bbox[0]) / 2
+    center_x2 = (Compare_bbox[3] - Compare_bbox[1]) / 2
+    center_y2 = (Compare_bbox[2] - Compare_bbox[0]) / 2
+
+    # calculate square of center point distance
+    p2 = (center_x2 - center_x1) ** 2 + (center_y2 - center_y1) ** 2
+
+    # calculate square of the diagonal length
+    width_c = max(VoTT_bbox[3], Compare_bbox[3]) - min(VoTT_bbox[1], Compare_bbox[1])
+    height_c = max(VoTT_bbox[2], Compare_bbox[2]) - min(VoTT_bbox[0], Compare_bbox[0])
+    c2 = width_c ** 2 + height_c ** 2
+
+    # find the edge of intersect box
+    left = max(VoTT_bbox[1], Compare_bbox[1])
+    top = max(VoTT_bbox[0], Compare_bbox[0])
+    bottom = min(VoTT_bbox[2], Compare_bbox[2])
+    right = min(VoTT_bbox[3], Compare_bbox[3])
+
+    # calculate the intersect area
+    area_intersection = (right - left) * (bottom - top)
+
+    # calculate the union area
+    area_union = area_1 + area_2 - area_intersection
+
+    # calculate iou
+    if area_union == 0:
+        iou = 0
+    else:
+        iou = float(area_intersection) / area_union
+
+    # calculate v
+    if height_2 == 0 or height_1 == 0:
+        arctan = 0
+    else:
+        arctan = math.atan(float(width_2) / height_2) - math.atan(float(width_1) / height_1)
+    v = (4.0 / math.pi ** 2) * (arctan ** 2)
+
+    # calculate alpha
+    alpha = float(v) / (1 - iou + v)
+
+    # calculate ciou(iou - p2 / c2 - alpha * v)
+    ciou = iou - float(p2) / c2 - alpha * v
+
+    return ciou
 
 def compareResult(vottJson, maskRcnnJson):
     # 總共比對多少幀
@@ -95,7 +156,8 @@ def compareResult(vottJson, maskRcnnJson):
                 print(vott['name'])
                 if storageBbox == 'True':
                     drawBbox(vott['name'], vottJson['name'], vott['boundingBox'])
-                IoU_result['MaskRCNN'] = mask['count']
+                # Model 共標記 #FIXME: 照片輸出位置 若改別Model 這邊要改
+                IoU_result['Model'] = mask['count']
                 # 計算IOU
                 bbox_count = 0
                 catch = False
@@ -103,7 +165,11 @@ def compareResult(vottJson, maskRcnnJson):
                     if catch == False:
                         item = 0
                     while item < mask['count']:
-                        iou_number = calculateIoU(vott_bbox, mask['boundingBox'][item])
+                        if loss.lower() == 'ciou':
+                            iou_number = calculateCIoU(vott_bbox, mask['boundingBox'][item])
+                        elif loss.lower() == 'iou':
+                            iou_number = calculateIoU(vott_bbox, mask['boundingBox'][item])
+                            
                         # 若數值>0.5則判斷有抓到
                         if iou_number > 0.2:
                             # print(iou_number)
@@ -136,7 +202,8 @@ def compareResult(vottJson, maskRcnnJson):
                 break
 
         if detection == False:
-            IoU_result['MaskRCNN'] = 0 # MaskRCNN沒有偵測到人物
+            #FIXME: 若改別Model 這邊要改 
+            IoU_result['Model'] = 0 # MaskRCNN沒有偵測到人物
             IoU_result['TP'] = 0
             IoU_result['FP'] = 0
             IoU_result['Precision'] = 0
@@ -155,22 +222,27 @@ def read_json_file(file):
         return json.load(f)
 
 if __name__ == '__main__':
-    # >python compare_export_files.py E:\\Auto_Calculate\\Drone_003_auto_calculate_the_items.json E:\\Mask_RCNN\\samples\\Drone_003.json False
+    # > python compare_export_files.py E:\\Auto_Calculate\\Drone_003_auto_calculate_the_items.json E:\\Mask_RCNN\\samples\\Drone_003.json F:\\MaskRCNN_Compare_Image CIoU False
+    # > python compare_export_files.py E:\\Auto_Calculate\\Drone_019_auto_calculate_the_items.json F:\\Yolov3_Calculate\\Drone_019.json F:\\MaskRCNN_Compare_Image IoU True
     # 執行時輸入兩個要比較的JSON檔案位置
     
-    storageBbox = sys.argv[3] # 是否要存照片
+    storageBbox = sys.argv[5] # 是否要存照片
+    loss = sys.argv[4] # 損失函數
+    imagePath = sys.argv[3] # 圖片位置
     filePath_1 = sys.argv[1] # VoTT
-    filePath_2 = sys.argv[2] # MaskRCNN
+    filePath_2 = sys.argv[2] # MaskRCNN / YoloV4 / YoloV3
     vottJson = read_json_file(filePath_1)
     maskRcnnJson = read_json_file(filePath_2)
     finalResult = compareResult(vottJson, maskRcnnJson)
     
     print(finalResult)
+    # FIXME:若替換Model 需修改
     path = '.\\'
     # JSON檔名
-    file = path + vottJson['name'] + '_compare_result.json'
+    # FIXME: 若替換損失函數 這邊需改名稱
+    file = path + vottJson['name'] + '_' + loss  + 'model_compare_result.json'
     with open(file, 'w', encoding='utf8') as obj:
-        # 輸出成JSON並格式化
+    #     # 輸出成JSON並格式化
         json.dump(finalResult, obj, indent=4, separators=(',', ':'), ensure_ascii=False)
 
     # 2021-08-24 
